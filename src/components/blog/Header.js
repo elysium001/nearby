@@ -9,6 +9,9 @@ import Link from '@mui/material/Link';
 
 function Header(props) {
   const { sections, title } = props;
+  const clickHandler = (v) => {
+    props.onLinkClick(v)
+  }
 
   return (
     <React.Fragment>
@@ -42,7 +45,11 @@ function Header(props) {
             noWrap
             key={section.title}
             variant="body2"
-            href={section.url}
+            href={'#'}
+            onClick={(e)=>{
+              e.preventDefault()
+              clickHandler(section.title.replace('#',''))
+            }}
             sx={{ p: 1, flexShrink: 0 }}
           >
             {section.title}

@@ -8,24 +8,22 @@ import TwitterIcon from '@mui/icons-material/Twitter';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import Header from './Header';
 import MainFeaturedPost from './MainFeaturedPost';
-import FeaturedPost from './FeaturedPost';
+import RecentTwitterPosts from './RecentTwitterPosts';
 import Main from './Main';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import post1 from './blog-post.1.md';
 import post2 from './blog-post.2.md';
 import post3 from './blog-post.3.md';
+import NewsPosts from './NewsPosts';
 
 const sections = [
-  { title: 'Technology', url: '#' },
-  { title: 'Design', url: '#' },
+  { title: 'Social Media', url: '#social' },
+  { title: 'News', url: '#news' },
+  { title: 'Food', url: '#food' },
+  { title: 'Events', url: '#' },
   { title: 'Culture', url: '#' },
   { title: 'Business', url: '#' },
-  { title: 'Politics', url: '#' },
-  { title: 'Opinion', url: '#' },
-  { title: 'Science', url: '#' },
-  { title: 'Health', url: '#' },
-  { title: 'Style', url: '#' },
   { title: 'Travel', url: '#' },
 ];
 
@@ -59,6 +57,8 @@ const featuredPosts = [
   },
 ];
 
+
+
 const posts = [post1, post2, post3];
 
 const sidebar = {
@@ -89,34 +89,81 @@ const theme = createTheme();
 
 export default function Blog() {
 
-  const [ terms, setTerms ] = React.useState([]);
+  // const [ terms, setTerms ] = React.useState([]);
+  const [ currentPage, setCurrentPage ] = React.useState('Social');
+  const [ socialPosts, setSocialPosts ] = React.useState();
+  const [ newsPosts, setNewsPosts ] = React.useState();
 
   React.useEffect(()=>{
-    let t = []
-    for (let index = 0; index < posts.length; index++) {
-      const md = posts[index];
-      fetch(md).then((response) => response.text()).then((text) => {
-        t.push(text)
-        if(index === posts.length - 1){
-          setTerms(t)
+    // let t = []
+    // for (let index = 0; index < posts.length; index++) {
+    //   const md = posts[index];
+    //   fetch(md).then((response) => response.text()).then((text) => {
+    //     t.push(text)
+    //     if(index === posts.length - 1){
+    //       setTerms(t)
+    //     }
+    //   })
+    // }
+    var monthNames = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ]
+    const SOCIAL_API = "http://wp-test.test/wp-json/nearby/v1";
+
+    fetch(SOCIAL_API + '/social/place/albuquerque').then((res)=>res.json()).then((data)=>{
+      const dataObj = data
+      const socialposts = data?.social?.data?.map(({id, text, created_at, attachments = {}, entities: {mentions = [] }})=>{
+        const media = dataObj?.social?.includes?.media
+        const user = mentions && `@${mentions[0]?.username}`;
+        const { media_keys } = attachments
+        const time = new Date(created_at);
+        const obj = {
+          title: user,
+          id: id,
+          date: monthNames[time.getMonth()] + ' ' + time.getDate(),
+          description: text.substring(0,200) + '...',
+          image: media_keys && media.filter((m)=>m.media_key === media_keys[0])[0].url,
+          imageLabel: 'Image Text',
         }
+        return obj;
       })
-    }
+      setSocialPosts(socialposts || [])
+    })
+
+    fetch(SOCIAL_API + '/news/place/albuquerque').then((res)=>res.json()).then((data)=>{
+
+      const news = data?.news?.map(({title, date, content, url, source_url, source_link})=>{
+        const obj = {
+          title: title,
+          date: date,
+          description: content.substring(0,200) + '...',
+          url: url,
+          source_url: source_url,
+          source_link: source_link,
+        }
+        return obj;
+      })
+      setNewsPosts(news)
+    })
+
   }, [])
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Container maxWidth="lg">
-        <Header title="Blog" sections={sections} />
-        <main>
-          <MainFeaturedPost post={mainFeaturedPost} />
+        <Header title="Nearby" sections={sections} onLinkClick={(val)=>setCurrentPage(val)}/>
+        <main style={{minHeight: '80vh'}}>
+          {/* <MainFeaturedPost post={mainFeaturedPost} /> */}
+          {currentPage === 'Social' && <h2>Social Media Feed</h2>}
+          {currentPage === 'News' && <h2>News Feed</h2>}
           <Grid container spacing={4}>
-            {featuredPosts.map((post) => (
-              <FeaturedPost key={post.title} post={post} />
+            {(socialPosts && currentPage === 'Social') && socialPosts.map((post, i) => (
+              post.title !== '@undefined' && <RecentTwitterPosts key={i} post={post} />
+            ))}
+            {(newsPosts && currentPage === 'News') && newsPosts.map((post, i) => (
+              <NewsPosts key={i} post={post} />
             ))}
           </Grid>
-          <Grid container spacing={5} sx={{ mt: 3 }}>
+          {/* <Grid container spacing={5} sx={{ mt: 3 }}>
             <Main title="From the firehose" posts={terms} />
             <Sidebar
               title={sidebar.title}
@@ -124,7 +171,7 @@ export default function Blog() {
               archives={sidebar.archives}
               social={sidebar.social}
             />
-          </Grid>
+          </Grid> */}
         </main>
       </Container>
       <Footer
